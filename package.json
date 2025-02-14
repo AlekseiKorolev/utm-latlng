@@ -1,8 +1,8 @@
 {
   "name": "utm-latlng",
-  "version": "1.0.8",
+  "version": "1.0.15",
   "description": "LatLng to UTM converter vice versa",
-  "main": "UTMLatLng.js",
+  "main": "es6.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

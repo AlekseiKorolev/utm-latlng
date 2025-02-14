@@ -51,7 +51,14 @@ declare class UTMLatLng {
 
 Constructor(type?: ElipsoidType)
 
-ConvertLatLngToUtm(latitude: number, longitude: number, precision: number): string | {
+convertLatLngToUtm(latitude: number, longitude: number, precision: number): string | {
+Easting: number;
+Northing: number;
+ZoneNumber: number;
+ZoneLetter: ZoneLetter;
+}
+
+convertLatLngToUtmFixedZone(zone: string, latitude: number, longitude: number, precision: number): string | {
 Easting: number;
 Northing: number;
 ZoneNumber: number;
@@ -64,5 +71,13 @@ lng: number;
 }
 }
 
-export = UTMLatLng;
+// export = UTMLatLng;
 
+export declare function toUtm(latitude: number, longitude: number, 
+    precision: number, ellipsoidName?: string): { easting: number, northing: number, zoneNumber: number, zoneLetter: string }
+
+export declare function toUtmFixedZone(zone: number, latitude: number, longitude: number, precision: number, 
+    ellipsoidName?: string): { easting: number, northing: number, zoneNumber: number, zoneLetter: string }
+    
+export declare function fromUtm(easting: number, northing: number, zoneNumber: number, zoneLetter: string, 
+    ellipsoidName?: stirng): { latitude: number, longitude: number }

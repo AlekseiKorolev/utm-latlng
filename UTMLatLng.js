@@ -5,13 +5,88 @@ var datumName = "WGS 84";
 var a;
 var eccSquared;
 var status = false;
-function UTMLatLng(datumNameIn) {
-    if (datumNameIn !== undefined)
+
+function UTMLatLng(datumNameIn1) {
+    if (datumNameIn1 !== undefined)
     {
-        datumName = datumNameIn;
+        datumName = datumNameIn1;
     }
     this.setEllipsoid(datumName);
 }
+
+method.convertLatLngToUtmFixedZone = function (zone, latitude, longitude,precision)
+{
+    var ZoneNumber = parseInt(zone);
+    if (this.status)
+    {
+        return 'No ecclipsoid data associated with unknown datum: ' + datumName;
+    }
+
+    if(!Number.isInteger(precision))
+    {
+        return 'Precision is not integer number.';
+    }
+
+    latitude = parseFloat(latitude);
+    longitude = parseFloat(longitude);
+
+    // var LongTemp = longitude;
+    var LatRad = this.toRadians(latitude);
+    var LongRad = this.toRadians(LongTemp);
+
+    // if (LongTemp >= 8 && LongTemp <= 13 && latitude > 54.5 && latitude < 58) {
+    //     ZoneNumber = 32;
+    // } else if (latitude >= 56.0 && latitude < 64.0 && LongTemp >= 3.0 && LongTemp < 12.0) {
+    //     ZoneNumber = 32;
+    // } else {
+    //     ZoneNumber = ((LongTemp + 180) / 6) + 1;
+
+    //     if (latitude >= 72.0 && latitude < 84.0) {
+    //         if (LongTemp >= 0.0 && LongTemp < 9.0) {
+    //             ZoneNumber = 31;
+    //         } else if (LongTemp >= 9.0 && LongTemp < 21.0) {
+    //             ZoneNumber = 33;
+    //         } else if (LongTemp >= 21.0 && LongTemp < 33.0) {
+    //             ZoneNumber = 35;
+    //         } else if (LongTemp >= 33.0 && LongTemp < 42.0) {
+    //             ZoneNumber = 37;
+    //         }
+    //     }
+    // }
+    // ZoneNumber = parseInt(ZoneNumber);
+
+    var LongOrigin = (ZoneNumber - 1) * 6 - 180 + 3;  //+3 puts origin in middle of zone
+    var LongOriginRad = this.toRadians(LongOrigin);
+
+    var UTMZone = this.getUtmLetterDesignator(latitude);
+
+    var eccPrimeSquared = (this.eccSquared) / (1 - this.eccSquared);
+
+    var N = this.a / Math.sqrt(1 - this.eccSquared * Math.sin(LatRad) * Math.sin(LatRad));
+    var T = Math.tan(LatRad) * Math.tan(LatRad);
+    var C = eccPrimeSquared * Math.cos(LatRad) * Math.cos(LatRad);
+    var A = Math.cos(LatRad) * (LongRad - LongOriginRad);
+
+    var M = this.a * ((1 - this.eccSquared / 4 - 3 * this.eccSquared * this.eccSquared / 64 - 5 * this.eccSquared * this.eccSquared * this.eccSquared / 256) * LatRad
+        - (3 * this.eccSquared / 8 + 3 * this.eccSquared * this.eccSquared / 32 + 45 * this.eccSquared * this.eccSquared * this.eccSquared / 1024) * Math.sin(2 * LatRad)
+        + (15 * this.eccSquared * this.eccSquared / 256 + 45 * this.eccSquared * this.eccSquared * this.eccSquared / 1024) * Math.sin(4 * LatRad)
+        - (35 * this.eccSquared * this.eccSquared * this.eccSquared / 3072) * Math.sin(6 * LatRad));
+
+    var UTMEasting = parseFloat(0.9996 * N * (A + (1 - T + C) * A * A * A / 6
+        + (5 - 18 * T + T * T + 72 * C - 58 * eccPrimeSquared) * A * A * A * A * A / 120)
+    + 500000.0);
+
+    var UTMNorthing = parseFloat(0.9996 * (M + N * Math.tan(LatRad) * (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * A * A * A * A / 24
+        + (61 - 58 * T + T * T + 600 * C - 330 * eccPrimeSquared) * A * A * A * A * A * A / 720)));
+
+    if (latitude < 0)
+        UTMNorthing += 10000000.0;
+    UTMNorthing = precisionRound(UTMNorthing,precision);
+    UTMEasting = precisionRound(UTMEasting,precision);
+    return {Easting: UTMEasting, Northing: UTMNorthing, ZoneNumber: parseInt(ZoneNumber), ZoneLetter: UTMZone};
+
+
+};
 
 method.convertLatLngToUtm = function (latitude, longitude,precision)
 {

@@ -96,6 +96,74 @@ function getEllipsoid(name = 'WGS 84') {
   return ellipsoids[name];
 }
 
+function toUtmFixedZone(zone, latitude, longitude, precision, ellipsoidName) {
+  const { a, eccSquared } = getEllipsoid(ellipsoidName);
+
+  if(!Number.isInteger(precision)) {
+    throw new Error('Precision is not a integer');
+  }
+
+  latitude = parseFloat(latitude);
+  longitude = parseFloat(longitude);
+  const latitudeRadians = toRadians(latitude);
+  const longitudeRadians = toRadians(longitude);
+  let zoneNumber = parseInt(zone);
+
+  // if (longitude >= 8 && longitude <= 13 && latitude > 54.5 && latitude < 58) {
+  //   zoneNumber = 32;
+  // } else if (latitude >= 56.0 && latitude < 64.0 && longitude >= 3.0 && longitude < 12.0) {
+  //   zoneNumber = 32;
+  // } else {
+  //   zoneNumber = ((longitude + 180) / 6) + 1;
+
+  //   if (latitude >= 72.0 && latitude < 84.0) {
+  //     if (longitude >= 0.0 && longitude < 9.0) {
+  //       zoneNumber = 31;
+  //     } else if (longitude >= 9.0 && longitude < 21.0) {
+  //       zoneNumber = 33;
+  //     } else if (longitude >= 21.0 && longitude < 33.0) {
+  //       zoneNumber = 35;
+  //     } else if (longitude >= 33.0 && longitude < 42.0) {
+  //       zoneNumber = 37;
+  //     }
+  //   }
+  // }
+
+  // zoneNumber = parseInt(zoneNumber);
+
+  const longitudeOrigin = (zoneNumber - 1) * 6 - 180 + 3;  //+3 puts origin in middle of zone
+  const longitudeOriginRadians = toRadians(longitudeOrigin);
+
+  const zoneLetter = getUtmLetterDesignator(latitude);
+
+  const eccPrimeSquared = (eccSquared) / (1 - eccSquared);
+
+  const N = a / Math.sqrt(1 - eccSquared * Math.sin(latitudeRadians) * Math.sin(latitudeRadians));
+  const T = Math.tan(latitudeRadians) * Math.tan(latitudeRadians);
+  const C = eccPrimeSquared * Math.cos(latitudeRadians) * Math.cos(latitudeRadians);
+  const A = Math.cos(latitudeRadians) * (longitudeRadians - longitudeOriginRadians);
+
+  const M = a * ((1 - eccSquared / 4 - 3 * eccSquared * eccSquared / 64 - 5 * eccSquared * eccSquared * eccSquared / 256) * latitudeRadians
+        - (3 * eccSquared / 8 + 3 * eccSquared * eccSquared / 32 + 45 * eccSquared * eccSquared * eccSquared / 1024) * Math.sin(2 * latitudeRadians)
+        + (15 * eccSquared * eccSquared / 256 + 45 * eccSquared * eccSquared * eccSquared / 1024) * Math.sin(4 * latitudeRadians)
+        - (35 * eccSquared * eccSquared * eccSquared / 3072) * Math.sin(6 * latitudeRadians));
+
+  let easting = parseFloat(0.9996 * N * (A + (1 - T + C) * A * A * A / 6
+        + (5 - 18 * T + T * T + 72 * C - 58 * eccPrimeSquared) * A * A * A * A * A / 120)
+    + 500000.0);
+
+  let northing = parseFloat(0.9996 * (M + N * Math.tan(latitudeRadians) * (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * A * A * A * A / 24
+        + (61 - 58 * T + T * T + 600 * C - 330 * eccPrimeSquared) * A * A * A * A * A * A / 720)));
+
+  if (latitude < 0) {
+    northing += 10000000.0;
+  }
+  northing = precisionRound(northing, precision);
+  easting = precisionRound(easting, precision);
+
+  return { easting, northing, zoneLetter };
+}
+
 function toUtm(latitude, longitude, precision, ellipsoidName) {
   const { a, eccSquared } = getEllipsoid(ellipsoidName);
 
@@ -210,4 +278,4 @@ function fromUtm(easting, northing, zoneNumber, zoneLetter, ellipsoidName) {
   return { latitude, longitude };
 }
 
-export { fromUtm, toUtm };
+export { fromUtm, toUtm, toUtmFixedZone };
